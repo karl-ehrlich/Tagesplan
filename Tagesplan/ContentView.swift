@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ActivityCreationView: View {
     var body: some View {
-        Text("test")
+        Text("test123")
     }
 }
 
