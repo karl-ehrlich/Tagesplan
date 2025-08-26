@@ -8,65 +8,120 @@
 import SwiftUI
 
 struct ActivityCreationView: View {
-    var body: some View {
-        Text("test123")
-    }
-}
-
-struct ContentView: View {
     
-    @State private var displayCreationSheet = false
+    @Environment(\.dismiss)
+    private var dismiss
+    
+    @Binding
+    var activities: [Activity]
+    
+    
+    @State private var title: String = ""
+    @State private var description: String = ""
+    
+    @State private var startTime: Date = .now
+    @State private var endTime: Date = .now.addingTimeInterval(60 * 60)
+    
+    @State private var priority: ActivityPriority = .medium
+    
+    var allowCreation: Bool {
+        
+        guard !title.isEmpty else { return false }
+        guard startTime < endTime else { return false }
+        
+        return true
+    }
     
     var body: some View {
         NavigationStack {
             
             List {
                 
-                if false {
+                Section("Information") {
+                    TextField("Title", text: $title)
+                    TextField("Description", text: $description, axis: .vertical)
+                }
+                
+                Section("Duration") {
                     HStack {
+                        DatePicker(
+                            "Start Time",
+                            selection: $startTime,
+                            displayedComponents: .hourAndMinute
+                        )
+                        .datePickerStyle(.compact)
+                        .labelsHidden()
                         
-                        ProgressView()
-                            .padding(.trailing, 5)
+                        Image(systemName: "arrow.right")
+                            .foregroundStyle(.secondary)
+                            .frame(
+                                maxWidth: .infinity,
+                                alignment: .center
+                            )
                         
-                        VStack(alignment: .leading) {
-                            Text("Synchronisierung läuft")
-                                .font(.headline)
-                            Text("Beide Geräte eingeschaltet lassen")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
                         
+                        DatePicker(
+                            "End Time",
+                            selection: $endTime,
+                            displayedComponents: .hourAndMinute
+                        )
+                        .datePickerStyle(.compact)
+                        .labelsHidden()
                     }
                 }
                 
+                Section("Priority") {
+                    Picker("Priority", selection: $priority) {
+                        Text("Low") .tag(ActivityPriority.low)
+                        Text("Medium") .tag(ActivityPriority.medium)
+                        Text("High") .tag(ActivityPriority.high)
+                    } .pickerStyle(.segmented)
+                }
+                
+            }
+            .navigationTitle("New Event")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel", role: .cancel) {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Create") {
+                        
+                        let newActivity = Activity(
+                            startTime: startTime,
+                            endTime: endTime,
+                            activityPriority: priority,
+                            activityTitle: title,
+                            activityDescription: description
+                        )
+                        
+                        activities.append(newActivity)
+                        
+                        dismiss()
+                    } .disabled(!allowCreation)
+                }
+            }
+        }
+    }
+}
+
+struct ContentView: View {
+    
+    @State private var displayCreationSheet = true
+    @State private var activities = [Activity]()
+    
+    var body: some View {
+        NavigationStack {
+            
+            List {
+                
+                
                 
                 Section("Di. 26. Aug.") {
-                    let now = Date()
-                    let mockActivities: [Activity] = [
-                        Activity(
-                            startTime: Calendar.current.date(byAdding: .minute, value: -90, to: now)!,
-                            endTime: Calendar.current.date(byAdding: .minute, value: -30, to: now)!,
-                            activityPriority: .low,
-                            activityTitle: "Breakfast",
-                            activityDescription: "Quick meal"
-                        ),
-                        Activity(
-                            startTime: Calendar.current.date(byAdding: .minute, value: -15, to: now)!,
-                            endTime: Calendar.current.date(byAdding: .minute, value: 90, to: now)!,
-                            activityPriority: .medium,
-                            activityTitle: "Work Session",
-                            activityDescription: "Focus time"
-                        ),
-                        Activity(
-                            startTime: Calendar.current.date(byAdding: .minute, value: 120, to: now)!,
-                            endTime: Calendar.current.date(byAdding: .minute, value: 180, to: now)!,
-                            activityPriority: .high,
-                            activityTitle: "Meeting",
-                            activityDescription: "Team sync"
-                        )
-                    ]
-                    
-                    ActivitiesView(activities: mockActivities)
+                   ActivitiesView(activities: activities)
                 }
             }
             .navigationTitle("Tagesplan")
@@ -95,9 +150,9 @@ struct ContentView: View {
                     } //.disabled(true)
                 }
             }
-        }
-        .sheet(isPresented: $displayCreationSheet) {
-            ActivityCreationView()
+            .sheet(isPresented: $displayCreationSheet) {
+                ActivityCreationView(activities: $activities)
+            }
         }
     }
 }
